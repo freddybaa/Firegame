@@ -1,4 +1,4 @@
-class PickableFireExtinguisher extends Actor
+class MyDroppedPickup extends DroppedPickup
       placeable;
 
 var (Custom) StaticMeshComponent TheMesh;
@@ -17,25 +17,16 @@ event Touch(Actor Other, PrimitiveComponent OtherComp, vector HitLocation, vecto
         //test if it is the Player
       if( pawnLocal.controller.bIsPlayer ) 
       {
-		
-		//deny pickup if pawn already got an item. 
-		if(pawnLocal.InvManager.InventoryChain != None){
-			WorldInfo.Game.BroadCast(self, "You already got a fire extinguisher!"); 
-			return; 
+	  
+		if(type=="Foam"){
+			fe = Spawn(Class'FireExtinguisherFoam'); 
+		}else if(type=="Water"){
+			fe = Spawn(Class'FireExtinguisherWater'); 
+		}else{
+			//default 
+			fe = Spawn(Class'FireExtinguisherFoam'); 
 		}
 		
-		if(type=="FireExtinguisherFoam")
-			fe = Spawn(Class'FireExtinguisherFoam'); 
-		else if(type=="FireExtinguisherWater")
-			fe = Spawn(Class'FireExtinguisherWater'); 
-		else if(type=="FireExtinguisherCo")
-			fe = Spawn(Class'FireExtinguisherCo'); 
-		else if(type=="FireExtinguisherPowder")
-			fe = Spawn(Class'FireExtinguisherPowder'); 
-		else 
-			//default 
-			fe = Spawn(Class'FireExtinguisherPowder'); 
-			
 		if(fe != None)
 			fe.GiveTo(pawnLocal);
 		

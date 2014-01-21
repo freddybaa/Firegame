@@ -2,12 +2,18 @@ class MyPawn extends UDKPawn;
 var (Custom) SkeletalMeshComponent TheMesh;
 
 
- 
 
-// function AddDefaultInventory()
- // {
-     // InvManager.CreateInventory(class'FireExtinguisher'); //InvManager is the pawn's InventoryManager
-// }
+
+
+
+
+
+event Tick(float DeltaTime)
+{
+}
+
+
+
 defaultproperties
 {
 	Begin Object class=SkeletalMeshComponent Name=MyMesh

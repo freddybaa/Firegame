@@ -1,28 +1,19 @@
 class ExtinguisherProjectile extends UDKProjectile; 
-
-simulated function ProcessTouch(Actor Other, Vector hitLocation, Vector hitNornal){
-	local Fire fire; 
-	
-	fire = Fire(Other); 
-	
-	fire.take(0);
-	
-	
-
-		
-}
-
+var string type; 
 
 DefaultProperties
 {
+type="default"; 
+Speed=600;
+Begin Object Name=CollisionCylinder
+        CollisionRadius=15
+        CollisionHeight=16
+End Object
 
-Speed=500
 Begin Object Class=ParticleSystemComponent Name=MyParticleSystemComponent
-	Template=ParticleSystem'Wooop.Effects.FX_DRY_POWDER'
+	Template=ParticleSystem'Wooop.Effects.FX_DRY_FOAM'
 	bAutoActivate=true
 End Object 
 
 Components.Add(MyParticleSystemComponent)
-bBlockedByInstigator=false
-
 }

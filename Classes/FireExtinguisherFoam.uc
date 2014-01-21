@@ -1,7 +1,11 @@
 class FireExtinguisherFoam extends FireExtinguisher; 
 
 
+
+
 DefaultProperties
 {
-	particleEffect=ParticleSystem'Wooop.Effects.P_WaterSplash_01'
+type="FireExtinguisherFoam"; 
+WeaponProjectiles(0)=class'ExtinguisherProjectileFoam'
+droppedWeapon=PickableFireExtinguisher'Wooop.Pickup_extinguisher_foam';
 }

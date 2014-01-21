@@ -3,7 +3,6 @@ config(game);
 
 DefaultProperties
 {
-
 	DefaultPawnClass=class'MyPawn'
 	PlayerControllerClass=class'MyPlayerController'
 }

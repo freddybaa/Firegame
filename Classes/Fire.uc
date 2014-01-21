@@ -8,9 +8,9 @@ var(MyParticleSystem) float maxScaleSize;
 var() float sleepTime; 
 var bool EXTINGUISH; 
 var int maxHealth; 
-
-
-
+var(MyParticleSystem) string type; 
+var bool VALID; 
+var array<string> valid_extinguisher;
 
 event Tick(float DeltaTime)
 {
@@ -24,7 +24,7 @@ event Tick(float DeltaTime)
    
    scale = (DeltaTime) * scaleSpeed; 
    
-   if(EXTINGUISH){
+   if(EXTINGUISH && VALID){
 
 	v.X -= scale;
 	v.Z -= scale;
@@ -47,22 +47,26 @@ event Tick(float DeltaTime)
    
 } 
 
-function take(int damage){
-
- WorldInfo.Game.Broadcast(self,"TAKEN HIT");
- GotoState('Scale');
- 
- //based on extinghuisher
- //scaleSpeed = damage; 
- 
- scaleSpeed = 0.8; 
+//checking if it is a valid fireextinguisher
+function validExtinguisher(string extinguisher){
+	local int i; 
+	for(i=0;i<valid_extinguisher.Length;i++){
+		if(valid_extinguisher[i] == extinguisher) VALID = true; 
+	}
 }
 
-event TakeDamage(int DamageAmount, Controller EventInstigator, vector HitLocation, vector Momentum, class<DamageType> DamageType, optional TraceHitInfo HitInfo, optional Actor DamageCauser)
-{
-	super.TakeDamage(DamageAmount,EventInstigator, HitLocation,Momentum,DamageType,HitInfo,DamageCauser);
-	 WorldInfo.Game.Broadcast(self,"TAKEN HIT");
-    GotoState('Scale');
+//handling damage taken 
+function take(int damage, string extinguisherType){
+
+ validExtinguisher(extinguisherType); 
+ 
+ if(VALID)
+	scaleSpeed = 0.8; 
+ else
+	scaleSpeed = 0.6; 
+ 
+ GotoState('Scale');
+ 
 }
 
 auto state Idle
@@ -71,7 +75,7 @@ auto state Idle
 Begin:
 	EXTINGUISH=false;
     WorldInfo.Game.Broadcast(self,"Idle state");
-    scaleSpeed = 0.1;  
+	scaleSpeed=0.1;
 }
 
 state Scale
@@ -83,7 +87,6 @@ Begin:
 	Sleep(sleepTime); 
 	GotoState('Idle');
 }
-
 
 DefaultProperties
 {
@@ -115,7 +118,7 @@ bBlockActors=true
 scaleSpeed=0.1
 maxScaleSize=5; 
 sleepTime=1.0; 
-
+type="default"; 
 
 
 }

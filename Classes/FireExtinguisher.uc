@@ -1,6 +1,6 @@
 class FireExtinguisher extends UDKWeapon placeable;
 
-
+var Actor droppedWeapon;
 var int Damage; 
 var int ammo; 
 var()int weaponOffset; 
@@ -34,7 +34,7 @@ simulated event SetPosition(UDKPawn Holder)
         if (socket != none)
         {
             FinalLocation = compo.GetBoneLocation(socket.BoneName);
-			WorldInfo.Game.Broadcast(self,FinalLocation);
+			//WorldInfo.Game.Broadcast(self,FinalLocation);
         }
     } 
  
@@ -61,12 +61,31 @@ simulated event SetPosition(UDKPawn Holder)
 	//WorldInfo.Game.Broadcast(self,playerRotation);
 }
 
+exec function placeObject(){
+	local vector objectPosition, StartTrace, Aim; 
+	local rotator AimRot;
+	local rotator defaultRotation; 
+	local MyPawn P; 
+	
+	P = MyPawn( Instigator ); 
+	P.Controller.GetPlayerViewPoint( StartTrace, AimRot );
+	Aim = vector(AimRot); 
+	objectPosition = StartTrace + Aim * 100; 
+	defaultRotation.yaw = AimRot.roll; 
+	
+	P.InvManager.DiscardInventory();
+	//objectPosition.y += 200; 
+	objectPosition.z = 0; 
+	
+	
+	Spawn(droppedWeapon.Class , , , objectPosition , defaultRotation , droppedWeapon);
+}
 
 event Tick(float DeltaTime)
 {
 
 	SetPosition(MyPawn(Instigator)); 
-	WorldInfo.Game.Broadcast(self,type);
+	//WorldInfo.Game.Broadcast(self,type);
 }
 
 simulated function vector GetWeaponLocation()
@@ -84,35 +103,80 @@ simulated function vector GetWeaponLocation()
 	return vect(0,0,0);
 }
 
-// simulated event PostInitAnimTree(SkeletalMeshComponent SkelComp)
-// {
-	// super.PostInitAnimTree(SkelComp);
 
-	// if(SkelComp == myMesh)
-		// myMesh.PlayAnim('',,True, False); 
-// }
+
+
+simulated function Projectile ProjectileFire()
+{
+	local vector		StartTrace, EndTrace, RealStartLoc, AimDir;
+	local ImpactInfo	TestImpact;
+	local Projectile	SpawnedProjectile;
+
+	if(!pinPulled)return None; 
+	
+	// tell remote clients that we fired, to trigger effects
+	IncrementFlashCount();
+
+	if( Role == ROLE_Authority )
+	{
+		// This is where we would start an instant trace. (what CalcWeaponFire uses)
+		StartTrace = Instigator.GetWeaponStartTraceLocation();
+		AimDir = Vector(GetAdjustedAim( StartTrace ));
+
+		// this is the location where the projectile is spawned.
+		RealStartLoc = GetWeaponLocation();
+
+		if( StartTrace != RealStartLoc )
+		{
+			// if projectile is spawned at different location of crosshair,
+			// then simulate an instant trace where crosshair is aiming at, Get hit info.
+			EndTrace = StartTrace + AimDir * GetTraceRange();
+			TestImpact = CalcWeaponFire( StartTrace, EndTrace );
+
+			// Then we realign projectile aim direction to match where the crosshair did hit.
+			AimDir = Normal(TestImpact.HitLocation - RealStartLoc);
+		}
+
+		// Spawn projectile
+		SpawnedProjectile = Spawn(GetProjectileClass(), Self,, RealStartLoc);
+		if( SpawnedProjectile != None && !SpawnedProjectile.bDeleteMe )
+		{
+			
+			
+			
+			
+			SpawnedProjectile.Init( AimDir );
+		}
+
+		// Return it up the line
+		return SpawnedProjectile;
+	}
+
+	return None;
+}
 
 simulated state WeaponFiring
 {
 	simulated event bool IsFiring()
 	{
+		if(!pinPulled)return false; 
+		myMesh.PlayAnim('Fireextinguisher_Idle',,true, False); 
 		return true;
 	}
+	
 	simulated event BeginState( Name PreviousStateName )
 	{
-		`LogInv("PreviousStateName:" @ PreviousStateName);
-		// Fire the first shot right away
+		
 		FireAmmunition();
 		TimeWeaponFiring( CurrentFireMode );
-		isShooting=true;
-		particleBeam.ActivateSystem(true);
-		if(!pinPulled)return; 
-		myMesh.PlayAnim('FIRE_EXTINGUISHER_WITH_ANIMATION_StartShoot',,false, False); 
-		//shootanimation here
+		if(!pinPulled)return;
+		myMesh.PlayAnim('Fireextinguisher_StartShoot',,false, False); 
+		
 	}
 
 	simulated event EndState( Name NextStateName )
 	{
+		if(!pinPulled)return; 
 		`LogInv("NextStateName:" @ NextStateName);
 		// Set weapon as not firing
 		ClearFlashCount();
@@ -121,31 +185,28 @@ simulated state WeaponFiring
 	
 		NotifyWeaponFinishedFiring( CurrentFireMode );
 		
-		isShooting=false;
-		particleBeam.DeactivateSystem();
-		if(!pinPulled)return; 
-		myMesh.PlayAnim('FIRE_EXTINGUISHER_WITH_ANIMATION_StopShoot',,false, False); 
+
+		
+		myMesh.PlayAnim('Fireextinguisher_StopShoot',,false, False); 
 	}
 }
 
 //testing the pin animation 
 
 exec function pullPin(){
-	myMesh.PlayAnim('FIRE_EXTINGUISHER_WITH_ANIMATION_Pull_pin',,false, False); 
+	myMesh.PlayAnim('Fireextinguisher_Pull',,false, False); 
 	pinPulled=true; 
 }
-function setType(string newType){
-	self.type = newType; 
-}
+
 simulated function ProcessInstantHit(byte FiringMode, ImpactInfo Impact, optional int NumHits)
 {
 
-	local Fire fire; 
+
 	local vector startLoc; 
 	
 	
 	if(!pinPulled)return; 
-	//if(isShooting==false)return;
+	if(isShooting==false)return;
 	
 	//if(ammo==0)return; 
 	ammo--;
@@ -185,23 +246,20 @@ simulated function ProcessInstantHit(byte FiringMode, ImpactInfo Impact, optiona
 	
 	
 	
-	fire = Fire(Impact.HitActor); 
 	
-	fire.take(Damage);
-	isShooting=false;
 }
 
 DefaultProperties
 {
+
 	pinPulled = false; 
 	isShooting=false;
 	ammo = 100; 
 	//weaponOffset = 15; 
 	FiringStatesArray(0)=WeaponFiring
     WeaponFireTypes(0)=EWFT_Projectile
-	WeaponProjectiles(0)=class'ExtinguisherProjectile'
     FireInterval(0)=0.1
-    Spread(0)=0
+    Spread(0)=0.2
 
 	Begin Object class=AnimNodeSequence Name=myAnim
 	End Object
@@ -210,14 +268,15 @@ DefaultProperties
 
 	Begin Object class=SkeletalMeshComponent Name=MyStaticMesh
 	
-		 SkeletalMesh=SkeletalMesh'Wooop.FIRE_EXTINGUISHER_WITH_ANIMATION'
-		 Animsets(0)=AnimSet'wooop.Armature'
+		 SkeletalMesh=SkeletalMesh'Wooop.FireExtinguisher'
+		 Animsets(0)=AnimSet'wooop.Effects.Armature'
 		 Animations=myAnim
 		
 		
-		Scale=0.75
+		Scale=0.70
 	End Object
 	myMesh=MyStaticMesh
     Components.Add(MyStaticMesh)
+	
 	
 }
